@@ -23,7 +23,9 @@ local car_entity = {
     control_right = nil,
     control_up = nil,
     control_turbo = nil,
-    control_count = 0,
+
+    control_timer_right = 0,  -- prevent accidental consequtive left or right turns
+    control_timer_left = 0,
 
 	attached_items = {},
 
@@ -211,7 +213,6 @@ local car_entity = {
     get_next_rail_pos = function(self, pos, dir)
         local n_pos = nil
         if self.control_left then
-            self.control_count = self.control_count + 1
             if self:check_road(self:get_pos_relative({x=0, y=0, z=1}, pos, dir)) then
                 n_pos = self:get_pos_relative({x=0, y=0, z=1}, pos, dir);    --left
             elseif self:check_road(self:get_pos_relative({x=0, y=-1, z=1}, pos, dir)) then
@@ -234,7 +235,6 @@ local car_entity = {
                 n_pos = nil
             end
         elseif self.control_right then
-            self.control_count = self.control_count + 1
             if self:check_road(self:get_pos_relative({x=0, y=0, z=-1}, pos, dir)) then
                 n_pos = self:get_pos_relative({x=0, y=0, z=-1}, pos, dir);    --right
             elseif self:check_road(self:get_pos_relative({x=0, y=-1, z=-1}, pos, dir)) then
@@ -341,32 +341,27 @@ local car_entity = {
         local v = self.object:getvelocity()
         local s = vector.length(v)
 
+        self.control_timer_right = self.control_timer_right + dtime
+        self.control_timer_left = self.control_timer_left + dtime
+
         -- Get player controls
         if self.driver then
             player = minetest.get_player_by_name(self.driver)
             if player then
                 ctrl = player:get_player_control()
 
-                if ctrl and ctrl.right then
-                    if self.control_count > 0 then
-                        self.control_left = nil
-                        self.control_count = 0
-                    else
-                        self.control_left = nil
-                        self.control_right = true
-                        self.control_up = nil
-                        self.control_turbo = nil
-                    end
-                elseif ctrl and ctrl.left then
-                    if self.control_count > 0 then
-                        self.control_right = nil
-                        self.control_count = 0
-                    else
-                        self.control_left = true
-                        self.control_right = nil
-                        self.control_up = nil
-                        self.control_turbo = nil
-                    end
+                if self.control_timer_right > 0.15 and ctrl and ctrl.right then
+                    self.control_left = nil
+                    self.control_right = true
+                    self.control_up = nil
+                    self.control_turbo = nil
+                    self.control_timer_right = 0
+                elseif self.control_timer_left > 0.15 and ctrl and ctrl.left then
+                    self.control_left = true
+                    self.control_right = nil
+                    self.control_up = nil
+                    self.control_turbo = nil
+                    self.control_timer_left = 0
                 elseif ctrl and ctrl.sneak and ctrl.up then
                     if self.fuel-1 >= 0 and (s + 2) <= cars.speed_max_turbo then
                         s = s + 2
