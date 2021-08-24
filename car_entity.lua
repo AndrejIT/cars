@@ -49,7 +49,7 @@ local car_entity = {
     		self.sound_handle = nil
     		minetest.after(0.2, minetest.sound_stop, handle)
     	end
-    	local vel = self.object:getvelocity()
+    	local vel = self.object:get_velocity()
     	local speed = vector.length(vel)
     	if speed > 3 then
     		self.sound_handle = minetest.sound_play(
@@ -69,12 +69,12 @@ local car_entity = {
 
         local yaw = vector_yaw(v)
 
-        self.object:setyaw(yaw)
+        self.object:set_yaw(yaw)
     end,
 
     --get yaw as a vector
     get_yaw = function(self)
-        local yaw = self.object:getyaw()
+        local yaw = self.object:get_yaw()
 
         local v = yaw_vector(yaw)
 
@@ -87,22 +87,22 @@ local car_entity = {
         if not v then
             v = {x=0, y=0, z=0}
         end
-        self.object:setvelocity(v)
+        self.object:set_velocity(v)
     end,
 
     --align car position on railroad
     precize_on_rail = function(self, pos, tolerance)
-        local v = self.object:getvelocity()
+        local v = self.object:get_velocity()
         local aligned_pos = table.copy(pos)
     	if self.old_direction.x == 0 and math.abs(self.old_pos.x-pos.x)>(tolerance+1) then
             aligned_pos.x = self.old_pos.x
-    		self.object:setpos(aligned_pos)
+    		self.object:set_pos(aligned_pos)
     	elseif self.old_direction.z == 0 and math.abs(self.old_pos.z-pos.z)>(tolerance+1) then
             aligned_pos.z = self.old_pos.z
-    		self.object:setpos(aligned_pos)
+    		self.object:set_pos(aligned_pos)
     	elseif self.old_direction.y == 0 and math.abs(self.old_pos.y-pos.y)>tolerance then
             aligned_pos.y = self.old_pos.y
-    		self.object:setpos(aligned_pos)
+    		self.object:set_pos(aligned_pos)
     	end
     end,
 
@@ -130,7 +130,7 @@ local car_entity = {
     get_pos_relative = function(self, rel_pos, position, direction)
         local pos = position
         if pos == nil then
-            pos = self.object:getpos()
+            pos = self.object:get_pos()
         end
 
         if not rel_pos then
@@ -141,7 +141,7 @@ local car_entity = {
 
         local dir = direction
         if dir == nil then
-            local yaw = self.object:getyaw()
+            local yaw = self.object:get_yaw()
 
             dir = {x=0, y=0, z=0}
 
@@ -312,9 +312,9 @@ local car_entity = {
         self.object:set_armor_groups({fleshy=40, snappy=60, choppy=80})
 
         --decrease speed after car is left unattended
-        self.object:setvelocity(vector.multiply(self.object:getvelocity(), 0.5))
+        self.object:set_velocity(vector.multiply(self.object:get_velocity(), 0.5))
 
-        local pos = self.object:getpos()
+        local pos = self.object:get_pos()
         local d = self:get_yaw()
 
         self.old_pos = vector.round(pos)
@@ -336,9 +336,9 @@ local car_entity = {
     end,
 
     on_step = function(self, dtime)
-        local pos = self.object:getpos()
+        local pos = self.object:get_pos()
         local p = vector.round(pos)
-        local v = self.object:getvelocity()
+        local v = self.object:get_velocity()
         local s = vector.length(v)
 
         self.control_timer_right = self.control_timer_right + dtime
@@ -346,9 +346,9 @@ local car_entity = {
 
         -- Get player controls
         if self.driver then
-            player = minetest.get_player_by_name(self.driver)
+            local player = minetest.get_player_by_name(self.driver)
             if player then
-                ctrl = player:get_player_control()
+                local ctrl = player:get_player_control()
 
                 if self.control_timer_right > 0.15 and ctrl and ctrl.right then
                     self.control_left = nil
@@ -502,13 +502,13 @@ local car_entity = {
                         self.old_pos = table.copy(self.next_pos)
                         self.full_stop = true
                         self.next_pos = nil
-                        self.object:setpos(self.old_pos)
+                        self.object:set_pos(self.old_pos)
                         s = 0
                     else
                         --continue from last rail
                         local dir = self:precize_direction(self.next_pos, nextnext_pos)
                         self.old_pos = table.copy(nextnext_pos)
-                        self.object:setpos(nextnext_pos)
+                        self.object:set_pos(nextnext_pos)
                         self.next_pos = self:get_next_rail_pos(nextnext_pos, dir)
                     end
                 end
@@ -525,7 +525,7 @@ local car_entity = {
                     --dead end, stop car
                     self.full_stop = true
                     self.next_pos = nil
-                    self.object:setpos(self.old_pos)
+                    self.object:set_pos(self.old_pos)
                     s = 0
                 end
             elseif self:check_road(p) and self.next_pos == nil then
@@ -537,7 +537,7 @@ local car_entity = {
                     --dead end, stop car
                     self.full_stop = true
                     self.next_pos = nil
-                    self.object:setpos(self.old_pos)
+                    self.object:set_pos(self.old_pos)
                     s = 0
                 end
             end
@@ -683,7 +683,7 @@ local car_entity = {
         		-- Detach driver and items
         		if self.driver then
         			if self.old_pos then
-        				self.object:setpos(self.old_pos)
+        				self.object:set_pos(self.old_pos)
         			end
         			local player = minetest.get_player_by_name(self.driver)
         			cars:manage_attachment(player, nil)
@@ -705,7 +705,7 @@ local car_entity = {
         			local leftover = inv:add_item("main", cars.car_to_item(self))
         			-- If no room in inventory add a replacement car to the world
         			if not leftover:is_empty() then
-        				minetest.add_item(self.object:getpos(), leftover)
+        				minetest.add_item(self.object:get_pos(), leftover)
         			end
         		end
         		self.object:remove()
@@ -728,7 +728,7 @@ local car_entity = {
                         -- Detach driver and items
                         if self.driver then
                             if self.old_pos then
-                                self.object:setpos(self.old_pos)
+                                self.object:set_pos(self.old_pos)
                             end
                             local player = minetest.get_player_by_name(self.driver)
                             cars:manage_attachment(player, nil)
